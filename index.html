@@ -338,9 +338,10 @@
       border-radius: 999px;
       box-shadow: 0 10px 25px rgba(15,23,42,0.25);
       background:#e5e7eb;
+      object-fit: cover;
     }
 
-    /* 全16タイプ一覧 */
+    /* 全16タイプ一覧（共通） */
     .type-list-wrapper {
       margin-top: 22px;
       padding-top: 10px;
@@ -461,6 +462,13 @@
               次へ →
             </button>
           </div>
+
+          <!-- Quiz画面にも一覧を表示 -->
+          <div class="type-list-wrapper">
+            <h3 class="type-list-heading">全16タイプ一覧</h3>
+            <p class="type-list-note">※タップするとタイプ名・キャッチコピーと詳細結果を確認できます</p>
+            <div id="type-list-quiz" class="type-list-grid"></div>
+          </div>
         </div>
 
         <!-- Result view -->
@@ -468,8 +476,14 @@
           <div class="result-header">
             <div class="result-tag">診断結果</div>
             <div class="result-image-wrap">
-              <!-- ここに将来イラストなどを紐づけてもOK（現状はプレースホルダ） -->
-              <div class="result-image"></div>
+              <!-- 画像パスは「images/types/コード.png」を想定（例：images/types/HSND.png） -->
+              <img
+                id="result-image"
+                class="result-image"
+                src="images/types/default.png"
+                alt="タイプイメージ"
+                loading="lazy"
+              />
             </div>
             <div id="result-type-name" class="result-type-name"></div>
             <div id="result-code" class="result-code"></div>
@@ -497,11 +511,11 @@
             </div>
           </div>
 
-          <!-- 全16タイプ一覧 -->
+          <!-- Result画面の16タイプ一覧 -->
           <div class="type-list-wrapper">
             <h3 class="type-list-heading">全16タイプ一覧</h3>
             <p class="type-list-note">※タップすると他のタイプの説明も確認できます</p>
-            <div id="type-list" class="type-list-grid"></div>
+            <div id="type-list-result" class="type-list-grid"></div>
           </div>
 
           <div class="result-footer">
@@ -697,11 +711,9 @@
     ];
 
     // ===============================
-    // 16タイプ定義（コードごとにキャッチーなプロフィール）
-    // コード = LS(MO)(LX)(CF) = H/A, S/P, N/V, D/R
+    // 16タイプ定義
     // ===============================
     const TYPE_PROFILES = {
-      // HSND: ホーム × セイバー × nurture × ダイレクト
       "HSND": {
         name: "家守り番長",
         catch: "安定した暮らしを作り、行動で支え、必要なときはちゃんと話す。",
@@ -720,7 +732,6 @@
         ]
       },
 
-      // HSNR: S + N + R
       "HSNR": {
         name: "おだやか家計マネージャー",
         catch: "静かな安定感と、衝突を避ける優しさで家を守る。",
@@ -775,7 +786,6 @@
         ]
       },
 
-      // HP…（ホーム×プレイヤー）
       "HPND": {
         name: "おうち満喫職人",
         catch: "家は落ち着きたい、でも楽しみにはお金も時間も使いたい。",
@@ -848,7 +858,6 @@
         ]
       },
 
-      // AS…（アクティブ×セイバー）
       "ASND": {
         name: "堅実アクティブプランナー",
         catch: "人生をちゃんと楽しみたいからこそ、計画と話し合いを大事にする。",
@@ -921,7 +930,6 @@
         ]
       },
 
-      // AP…（アクティブ×プレイヤー）
       "APND": {
         name: "全力おでかけ提案王",
         catch: "一緒に全力で楽しみ、一緒にちゃんと話して進んでいく。",
@@ -995,6 +1003,9 @@
       }
     };
 
+    // 画像パスのベース（例：images/types/HSND.png）
+    const TYPE_IMAGE_BASE = "images/types";
+
     // ===============================
     // 状態管理
     // ===============================
@@ -1025,8 +1036,10 @@
     const axisChipsEl = document.getElementById("axis-chips");
     const restartBtn = document.getElementById("restart-btn");
     const copyUrlBtn = document.getElementById("copy-url-btn");
+    const resultImageEl = document.getElementById("result-image");
 
-    const typeListEl = document.getElementById("type-list");
+    const typeListQuizEl = document.getElementById("type-list-quiz");
+    const typeListResultEl = document.getElementById("type-list-result");
 
     // ===============================
     // 質問描画
@@ -1090,55 +1103,60 @@
       quizView.style.display = "";
       resultView.style.display = "none";
       renderQuestion();
+      renderTypeList(null); // 一覧はハイライトなしで維持
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     // ===============================
-    // 全16タイプ一覧描画
+    // 全16タイプ一覧描画（Quiz & Result 両方）
     // ===============================
     function renderTypeList(activeCode) {
-      if (!typeListEl) return;
-      typeListEl.innerHTML = "";
+      function fillList(targetEl) {
+        if (!targetEl) return;
+        targetEl.innerHTML = "";
 
-      for (const [code, profile] of Object.entries(TYPE_PROFILES)) {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "type-list-item" + (code === activeCode ? " is-active" : "");
-        item.dataset.code = code;
+        for (const [code, profile] of Object.entries(TYPE_PROFILES)) {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "type-list-item" + (code === activeCode ? " is-active" : "");
+          item.dataset.code = code;
 
-        const codeEl = document.createElement("div");
-        codeEl.className = "type-list-code";
-        codeEl.textContent = code;
+          const codeEl = document.createElement("div");
+          codeEl.className = "type-list-code";
+          codeEl.textContent = code;
 
-        const nameEl = document.createElement("div");
-        nameEl.className = "type-list-name";
-        nameEl.textContent = profile.name;
+          const nameEl = document.createElement("div");
+          nameEl.className = "type-list-name";
+          nameEl.textContent = profile.name;
 
-        const catchEl = document.createElement("div");
-        catchEl.className = "type-list-catch";
-        catchEl.textContent = profile.catch;
+          const catchEl = document.createElement("div");
+          catchEl.className = "type-list-catch";
+          catchEl.textContent = profile.catch;
 
-        item.appendChild(codeEl);
-        item.appendChild(nameEl);
-        item.appendChild(catchEl);
+          item.appendChild(codeEl);
+          item.appendChild(nameEl);
+          item.appendChild(catchEl);
 
-        item.addEventListener("click", () => {
-          // コードから軸サイドを復元して、そのタイプの結果を表示
-          const chosenSides = [];
-          for (let i = 0; i < AXES.length; i++) {
-            const axisDef = AXES[i];
-            const letter = code[i];
-            let side;
-            if (axisDef.sideA.code === letter) side = axisDef.sideA;
-            else if (axisDef.sideB.code === letter) side = axisDef.sideB;
-            else return;
-            chosenSides.push({ axis: axisDef, side });
-          }
-          renderResult(code, chosenSides);
-        });
+          item.addEventListener("click", () => {
+            const chosenSides = [];
+            for (let i = 0; i < AXES.length; i++) {
+              const axisDef = AXES[i];
+              const letter = code[i];
+              let side;
+              if (axisDef.sideA.code === letter) side = axisDef.sideA;
+              else if (axisDef.sideB.code === letter) side = axisDef.sideB;
+              else return;
+              chosenSides.push({ axis: axisDef, side });
+            }
+            renderResult(code, chosenSides);
+          });
 
-        typeListEl.appendChild(item);
+          targetEl.appendChild(item);
+        }
       }
+
+      fillList(typeListQuizEl);
+      fillList(typeListResultEl);
     }
 
     // ===============================
@@ -1195,6 +1213,10 @@
         resultStrengthsEl.innerHTML = "";
         resultWeaknessesEl.innerHTML = "";
         axisChipsEl.innerHTML = "";
+        if (resultImageEl) {
+          resultImageEl.src = `${TYPE_IMAGE_BASE}/default.png`;
+          resultImageEl.alt = "タイプイメージ";
+        }
         renderTypeList(code);
         return;
       }
@@ -1203,6 +1225,12 @@
       resultCodeEl.textContent = code;
       resultCodeInlineEl.textContent = code;
       resultCatchEl.textContent = profile.catch;
+
+      // 画像パスをコードから生成（images/types/HSND.png など）
+      if (resultImageEl) {
+        resultImageEl.src = `${TYPE_IMAGE_BASE}/${code}.png`;
+        resultImageEl.alt = `${profile.name}のイメージ`;
+      }
 
       axisChipsEl.innerHTML = "";
       chosenSides.forEach(cs => {
@@ -1229,7 +1257,7 @@
         resultWeaknessesEl.appendChild(li);
       });
 
-      // 一覧に反映（現在のタイプをハイライト）
+      // 一覧にハイライト反映
       renderTypeList(code);
 
       window.scrollTo({
@@ -1291,6 +1319,9 @@
     // 初期表示 & URLからの結果復元
     // ===============================
     function initFromUrl() {
+      // 一覧は常に表示
+      renderTypeList(null);
+
       const params = new URLSearchParams(window.location.search);
       const presetCode = params.get("type");
       if (!presetCode) {
