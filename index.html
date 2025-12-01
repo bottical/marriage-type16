@@ -339,6 +339,81 @@
       box-shadow: 0 10px 25px rgba(15,23,42,0.25);
       background:#e5e7eb;
     }
+
+    /* 全16タイプ一覧 */
+    .type-list-wrapper {
+      margin-top: 22px;
+      padding-top: 10px;
+      border-top: 1px dashed #e5e7eb;
+    }
+    .type-list-heading {
+      font-size: 0.95rem;
+      margin: 0 0 4px;
+      color: #111827;
+      font-weight: 700;
+    }
+    .type-list-note {
+      margin: 0 0 10px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .type-list-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    @media (min-width: 640px) {
+      .type-list-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (min-width: 900px) {
+      .type-list-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .type-list-item {
+      width: 100%;
+      text-align: left;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: background 120ms, box-shadow 120ms, transform 80ms, border-color 120ms;
+    }
+    .type-list-item:hover {
+      background: #eef2ff;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+      transform: translateY(-1px);
+      border-color: #c7d2fe;
+    }
+    .type-list-item.is-active {
+      background: #ecfeff;
+      border-color: #0f766e;
+      box-shadow: 0 6px 16px rgba(15, 118, 110, 0.25);
+    }
+    .type-list-code {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6b7280;
+    }
+    .type-list-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #111827;
+    }
+    .type-list-catch {
+      font-size: 0.8rem;
+      color: #6b7280;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   </style>
 </head>
 <body>
@@ -420,6 +495,13 @@
               <h3>気をつけたいポイント</h3>
               <ul id="result-weaknesses"></ul>
             </div>
+          </div>
+
+          <!-- 全16タイプ一覧 -->
+          <div class="type-list-wrapper">
+            <h3 class="type-list-heading">全16タイプ一覧</h3>
+            <p class="type-list-note">※タップすると他のタイプの説明も確認できます</p>
+            <div id="type-list" class="type-list-grid"></div>
           </div>
 
           <div class="result-footer">
@@ -638,7 +720,7 @@
         ]
       },
 
-      // S + N + R
+      // HSNR: S + N + R
       "HSNR": {
         name: "おだやか家計マネージャー",
         catch: "静かな安定感と、衝突を避ける優しさで家を守る。",
@@ -806,7 +888,7 @@
       "ASVD": {
         name: "理詰めのおでかけ指南役",
         catch: "言葉で整理し、行動で動く。頼られがちなアクティブ参謀。",
-        life: "あちこち動くことや新しい挑戦が好きですが、ベースは堅実。楽しみもリスクも、頭の中でちゃんと計算するです。",
+        life: "あちこち動くことや新しい挑戦が好きですが、ベースは堅実。楽しみもリスクも、頭の中でちゃんと計算するタイプです。",
         partner: "言葉で整理しながら、必要なことを決めていくスタイル。話し合いの場では、自然と“まとめ役”になりやすいかもしれません。",
         strengths: [
           "複雑なことを言葉で整理して伝えられる",
@@ -859,7 +941,7 @@
       },
 
       "APNR": {
-        name: "ふわっと自由なムードメイカータイプ",
+        name: "気まま気分メーカー",
         catch: "その場の楽しさを大事にしつつ、深刻な話は少し苦手。",
         life: "楽しいこと・おもしろそうなことがあれば、とりあえずやってみたいタイプ。細かい計画よりも、その場のノリや直感を重視します。",
         partner: "行動や時間で距離を縮める一方、重い話や衝突はできるだけ避けたいスタイル。明るさで場を和ませるのが得意です。",
@@ -944,6 +1026,8 @@
     const restartBtn = document.getElementById("restart-btn");
     const copyUrlBtn = document.getElementById("copy-url-btn");
 
+    const typeListEl = document.getElementById("type-list");
+
     // ===============================
     // 質問描画
     // ===============================
@@ -1010,6 +1094,54 @@
     }
 
     // ===============================
+    // 全16タイプ一覧描画
+    // ===============================
+    function renderTypeList(activeCode) {
+      if (!typeListEl) return;
+      typeListEl.innerHTML = "";
+
+      for (const [code, profile] of Object.entries(TYPE_PROFILES)) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "type-list-item" + (code === activeCode ? " is-active" : "");
+        item.dataset.code = code;
+
+        const codeEl = document.createElement("div");
+        codeEl.className = "type-list-code";
+        codeEl.textContent = code;
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "type-list-name";
+        nameEl.textContent = profile.name;
+
+        const catchEl = document.createElement("div");
+        catchEl.className = "type-list-catch";
+        catchEl.textContent = profile.catch;
+
+        item.appendChild(codeEl);
+        item.appendChild(nameEl);
+        item.appendChild(catchEl);
+
+        item.addEventListener("click", () => {
+          // コードから軸サイドを復元して、そのタイプの結果を表示
+          const chosenSides = [];
+          for (let i = 0; i < AXES.length; i++) {
+            const axisDef = AXES[i];
+            const letter = code[i];
+            let side;
+            if (axisDef.sideA.code === letter) side = axisDef.sideA;
+            else if (axisDef.sideB.code === letter) side = axisDef.sideB;
+            else return;
+            chosenSides.push({ axis: axisDef, side });
+          }
+          renderResult(code, chosenSides);
+        });
+
+        typeListEl.appendChild(item);
+      }
+    }
+
+    // ===============================
     // 結果計算（4軸 → 4文字コード → TYPE_PROFILES）
     // ===============================
     function calculateResult() {
@@ -1063,6 +1195,7 @@
         resultStrengthsEl.innerHTML = "";
         resultWeaknessesEl.innerHTML = "";
         axisChipsEl.innerHTML = "";
+        renderTypeList(code);
         return;
       }
 
@@ -1095,6 +1228,9 @@
         li.textContent = w;
         resultWeaknessesEl.appendChild(li);
       });
+
+      // 一覧に反映（現在のタイプをハイライト）
+      renderTypeList(code);
 
       window.scrollTo({
         top: resultView.offsetTop - 24,
