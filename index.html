@@ -415,6 +415,26 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+        .type-list-item-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .type-list-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #e5e7eb;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.15);
+    }
+    .type-list-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -1121,6 +1141,19 @@
           item.className = "type-list-item" + (code === activeCode ? " is-active" : "");
           item.dataset.code = code;
 
+          // 画像＋テキストの横並びコンテナ
+          const content = document.createElement("div");
+          content.className = "type-list-item-content";
+
+          const thumb = document.createElement("img");
+          thumb.className = "type-list-thumb";
+          thumb.src = `${TYPE_IMAGE_BASE}/${code}.png`;
+          thumb.alt = `${profile.name}のアイコン`;
+          thumb.loading = "lazy";
+
+          const textBox = document.createElement("div");
+          textBox.className = "type-list-text";
+
           const codeEl = document.createElement("div");
           codeEl.className = "type-list-code";
           codeEl.textContent = code;
@@ -1133,9 +1166,13 @@
           catchEl.className = "type-list-catch";
           catchEl.textContent = profile.catch;
 
-          item.appendChild(codeEl);
-          item.appendChild(nameEl);
-          item.appendChild(catchEl);
+          textBox.appendChild(codeEl);
+          textBox.appendChild(nameEl);
+          textBox.appendChild(catchEl);
+
+          content.appendChild(thumb);
+          content.appendChild(textBox);
+          item.appendChild(content);
 
           item.addEventListener("click", () => {
             const chosenSides = [];
