@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>結婚生活タイプ診断（7軸128タイプ）</title>
+  <title>婚活16タイプ診断（4軸）</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -334,6 +334,7 @@
     }
     .result-image {
       max-width: 120px;
+      height: 120px;
       border-radius: 999px;
       box-shadow: 0 10px 25px rgba(15,23,42,0.25);
       background:#e5e7eb;
@@ -344,8 +345,8 @@
   <div class="page">
     <header>
       <div class="title-block">
-        <h1>結婚生活タイプ診断（7軸128タイプ）</h1>
-        <p>「生活・お金・食・役割・愛情表現」からあなたの結婚生活タイプを診断</p>
+        <h1>婚活16タイプ診断</h1>
+        <p>生活・お金・愛情表現・話し合いスタイルから、あなたの結婚タイプを診断</p>
       </div>
     </header>
     <main>
@@ -354,7 +355,7 @@
         <div id="quiz-view">
           <div class="quiz-header">
             <div class="quiz-header-top">
-              <div class="badge">結婚生活タイプ診断</div>
+              <div class="badge">婚活版 16タイプ診断</div>
               <div id="progress-text" class="question-index"></div>
             </div>
             <div class="progress"><div id="progress-bar" class="progress-inner"></div></div>
@@ -426,6 +427,7 @@
             <button id="copy-url-btn" class="btn btn-ghost" style="margin-top:8px;" type="button">
               診断結果のURLをコピーする
             </button><br>
+            <!-- ここに128タイプ詳細版への導線を後から足せます -->
             <button id="restart-btn" class="btn btn-ghost" style="margin-top:8px;" type="button">
               もう一度診断する
             </button>
@@ -437,270 +439,45 @@
 
   <script>
     // ===============================
-    // 7軸定義（各軸2値 → 2^7 = 128タイプ）
+    // 4軸定義（16タイプ）
     // ===============================
-
-    // 軸のベース定義（コード・ラベル・説明・強み・弱みなど）
-    const AXIS_DEFS = [
+    const AXES = [
       {
         key: "LS", // LifeStyle
-        name: "生活設計スタイル",
-        sideA: {
-          code: "H",
-          label: "H：ホーム志向",
-          chip: "ホーム志向（家・安定・インドア寄り）",
-          tag: "家庭的で落ち着いた生活",
-          lifeDesc: "家で過ごす時間を大切にし、落ち着いた日常や安定を重視するタイプです。",
-          partnerDesc: "パートナーとは家でのんびり過ごす時間や、ルーティンの共有を大切にします。",
-          strengths: [
-            "日常生活が安定しやすく、家庭の土台を整えやすい",
-            "家での時間を工夫して楽しむことができる",
-            "一貫した生活リズムを作りやすい"
-          ],
-          weaknesses: [
-            "変化や新しいチャレンジに慎重になりすぎることがある",
-            "外出好きなパートナーとはペースがずれやすい"
-          ]
-        },
-        sideB: {
-          code: "A",
-          label: "A：アドベンチャー志向",
-          chip: "アドベンチャー志向（外出・刺激・変化寄り）",
-          tag: "刺激と経験を求める生活",
-          lifeDesc: "新しい場所や体験が好きで、日常の中にも変化や刺激を求めるタイプです。",
-          partnerDesc: "パートナーとは一緒にお出かけしたり、イベントや旅行を楽しみたいスタイルです。",
-          strengths: [
-            "マンネリになりにくく、楽しい思い出を多く作れる",
-            "新しい価値観や経験にも柔軟に適応できる"
-          ],
-          weaknesses: [
-            "予定が詰まりすぎると家事や休息が後回しになりやすい",
-            "インドア派のパートナーには少し忙しすぎると感じられることもある"
-          ]
-        }
+        name: "生活スタイル",
+        sideA: { code: "H", label: "H：ホーム志向（落ち着き重視）" },
+        sideB: { code: "A", label: "A：アクティブ志向（外出・刺激重視）" }
       },
       {
         key: "MO", // Money
-        name: "金銭管理スタイル",
-        sideA: {
-          code: "S",
-          label: "S：セイバー（堅実）",
-          chip: "セイバー（貯蓄・安定重視）",
-          tag: "家計を守る堅実派",
-          lifeDesc: "将来を見据えて、貯蓄や安定を意識したお金の使い方をするタイプです。",
-          partnerDesc: "パートナーとの家計は計画的に管理し、必要なところにしっかりお金を回したいと考えます。",
-          strengths: [
-            "無理のない家計運営ができ、貯蓄もコツコツ積み上げられる",
-            "大きな浪費やリスクの高い出費を避けやすい"
-          ],
-          weaknesses: [
-            "楽しみのための出費に罪悪感を持ちやすい",
-            "お金に対して慎重すぎると、経験や思い出の機会を逃すことも"
-          ]
-        },
-        sideB: {
-          code: "P",
-          label: "P：プレイヤー（経験重視）",
-          chip: "プレイヤー（経験・投資重視）",
-          tag: "経験と投資を楽しむ派",
-          lifeDesc: "お金は経験や成長、楽しみのために使っていきたいと考えるタイプです。",
-          partnerDesc: "パートナーとは旅行や外食、自己投資など、人生を豊かにする使い方を共有したいスタイルです。",
-          strengths: [
-            "お金を通じて人生の満足度を上げるのが得意",
-            "投資や成長に向けた使い方ができる"
-          ],
-          weaknesses: [
-            "計画を立てないと、気づいたときに貯蓄が不足していることも",
-            "堅実派のパートナーからは「ちょっと使いすぎ」と見られやすい"
-          ]
-        }
-      },
-      {
-        key: "FO", // Food
-        name: "食生活スタイル",
-        sideA: {
-          code: "G",
-          label: "G：グルメ志向",
-          chip: "グルメ志向（食の楽しみ重視）",
-          tag: "食を楽しむグルメ派",
-          lifeDesc: "おいしいものや外食、新しいお店の開拓など、食を“楽しみ”として大切にするタイプです。",
-          partnerDesc: "パートナーとは一緒に食事を楽しみ、ちょっとした外食や記念日のご飯にこだわりたいと考えます。",
-          strengths: [
-            "日常の中で「食」を通じた楽しみを生み出せる",
-            "記念日やイベントで印象的な思い出を作りやすい"
-          ],
-          weaknesses: [
-            "外食や食費がかさみやすい",
-            "食にこだわりの少ないパートナーとは温度差が出ることも"
-          ]
-        },
-        sideB: {
-          code: "L",
-          label: "L：ライト志向（シンプル）",
-          chip: "ライト志向（コスパ・シンプル重視）",
-          tag: "シンプルで無理のない食生活",
-          lifeDesc: "栄養やコスパ、手軽さを大事にし、食に過度なこだわりを持たないタイプです。",
-          partnerDesc: "パートナーとは無理のない範囲で自炊や外食を組み合わせ、背伸びしない食生活を送りたいと考えます。",
-          strengths: [
-            "食費をコントロールしやすく、家計とも両立しやすい",
-            "日々のご飯を“ちゃんと”回すことが得意"
-          ],
-          weaknesses: [
-            "グルメなパートナーには物足りなく感じられることも",
-            "食を通じたイベント感やサプライズはやや少なめになりがち"
-          ]
-        }
-      },
-      {
-        key: "RO", // Role
-        name: "役割分担意識",
-        sideA: {
-          code: "L",
-          label: "L：リード型",
-          chip: "リード型（決める・仕切る）",
-          tag: "家庭を引っ張るリーダー気質",
-          lifeDesc: "物事を決めたり、段取りを組んだりするのが得意で、自分から動いていくタイプです。",
-          partnerDesc: "パートナーとの生活でも、方針決めや予定調整などを率先して引き受けることが多くなりがちです。",
-          strengths: [
-            "家事分担や生活の仕組みづくりを主導できる",
-            "迷いがちな場面でも方針を示しやすい"
-          ],
-          weaknesses: [
-            "自分のやり方を押し付けてしまうリスクがある",
-            "頼られすぎて、気づくと負担が偏っていることも"
-          ]
-        },
-        sideB: {
-          code: "F",
-          label: "F：フロー型",
-          chip: "フロー型（合わせる・支える）",
-          tag: "相手に合わせる協調タイプ",
-          lifeDesc: "自分だけで決めるよりも、相手や状況に合わせて柔軟に動くタイプです。",
-          partnerDesc: "パートナーの方針やペースを尊重しつつ、自分のできる形で支えていきたいと考えます。",
-          strengths: [
-            "相手の意見をよく聞き、柔軟に調整できる",
-            "衝突を避けつつ、穏やかな関係を作りやすい"
-          ],
-          weaknesses: [
-            "言わないうちに我慢がたまりやすい",
-            "パートナーが受け身の場合、物事が進みにくいことも"
-          ]
-        }
+        name: "お金・家計スタイル",
+        sideA: { code: "S", label: "S：セイバー（貯蓄・安定重視）" },
+        sideB: { code: "P", label: "P：プレイヤー（経験・投資重視）" }
       },
       {
         key: "LX", // Love eXpression
         name: "愛情表現スタイル",
-        sideA: {
-          code: "N",
-          label: "N： nurture型（行動・時間）",
-          chip: " nurture型（行動・時間で示す）",
-          tag: "一緒に過ごす・世話をする愛情",
-          lifeDesc: "一緒にいる時間や家事・サポートなど、行動で愛情を示すタイプです。",
-          partnerDesc: "パートナーのために何かをしてあげることや、そばにいる時間を増やすことで愛情を表現します。",
-          strengths: [
-            "具体的な行動で支えるので、日常の安心感につながる",
-            "“一緒にいる”ことで関係を育てるのが得意"
-          ],
-          weaknesses: [
-            "言葉で気持ちを伝えるのが後回しになりがち",
-            "自分がどれだけ頑張っているか相手に気づかれにくいことも"
-          ]
-        },
-        sideB: {
-          code: "V",
-          label: "V： verbal型（言葉・気遣い）",
-          chip: " verbal型（言葉・メッセージで示す）",
-          tag: "言葉と気遣いで伝える愛情",
-          lifeDesc: "「ありがとう」「好きだよ」など、言葉やメッセージで気持ちを伝えることを大切にするタイプです。",
-          partnerDesc: "パートナーの気持ちを言葉で受け取り、自分の気持ちも丁寧に言葉で返したいと考えます。",
-          strengths: [
-            "気持ちのズレを言葉で埋められる",
-            "相手にとって分かりやすい形で愛情を伝えられる"
-          ],
-          weaknesses: [
-            "行動面が伴わないと“口だけ”に見られてしまうことも",
-            "言葉でのやりとりに慣れていない相手とは温度差が出やすい"
-          ]
-        }
+        sideA: { code: "N", label: "N： nurture型（行動・時間で示す）" },
+        sideB: { code: "V", label: "V： verbal型（言葉・メッセージで示す）" }
       },
       {
-        key: "EC", // Emotion Communication
-        name: "感情コミュニケーション",
-        sideA: {
-          code: "E",
-          label: "E：エクスプレス型",
-          chip: "エクスプレス型（感情を共有する）",
-          tag: "感情を一緒に味わいたいタイプ",
-          lifeDesc: "うれしい・悲しい・モヤモヤなどを、言葉や表情で比較的オープンに伝えるタイプです。",
-          partnerDesc: "パートナーにも本音や気持ちを聞きたいし、自分の気持ちもその都度シェアしていきたいと考えます。",
-          strengths: [
-            "気持ちを溜め込みにくく、誤解を減らしやすい",
-            "パートナーと感情レベルでつながりやすい"
-          ],
-          weaknesses: [
-            "その場の感情で話しすぎてしまうことがある",
-            "感情表現が少ない相手には“重い”と感じられることも"
-          ]
-        },
-        sideB: {
-          code: "C",
-          label: "C：カーム型",
-          chip: "カーム型（内側で整理する）",
-          tag: "一度飲み込んでから伝えるタイプ",
-          lifeDesc: "感情をまず自分の中で整理してから、必要に応じて言葉にするタイプです。",
-          partnerDesc: "パートナーには、落ち着いてから気持ちを伝えたいと考え、衝突よりも安定を優先します。",
-          strengths: [
-            "感情的になりすぎず、落ち着いたコミュニケーションができる",
-            "冷静に状況を見てから話し合いができる"
-          ],
-          weaknesses: [
-            "何を考えているか分かりづらいと感じられることがある",
-            "気持ちを飲み込んだまま、タイミングを逃してしまうことも"
-          ]
-        }
-      },
-      {
-        key: "CF", // ConFlict handling
-        name: "衝突時スタイル",
-        sideA: {
-          code: "D",
-          label: "D：ダイレクト型",
-          chip: "ダイレクト型（その場で話し合う）",
-          tag: "問題を正面から扱いたいタイプ",
-          lifeDesc: "モヤモヤや問題があれば、その場で話し合って整理したいタイプです。",
-          partnerDesc: "パートナーとも率直に話し合い、納得感のある形で解決したいと考えます。",
-          strengths: [
-            "問題を先送りせず、早めに対処できる",
-            "誤解やすれ違いをその場で修正しやすい"
-          ],
-          weaknesses: [
-            "相手の心の準備ができていないと圧を感じさせてしまうことがある",
-            "感情が高ぶっているときは言いすぎてしまうリスクも"
-          ]
-        },
-        sideB: {
-          code: "H",
-          label: "H：ハーモニー型",
-          chip: "ハーモニー型（衝突を和らげる）",
-          tag: "衝突を最小限にしたいタイプ",
-          lifeDesc: "空気が悪くなることを避けたい気持ちが強く、ぶつかるよりも時間を置いたり、やわらかく処理したいタイプです。",
-          partnerDesc: "パートナーとの関係では、必要な話し合いはしつつも、お互いが傷つきすぎない形を探したいと考えます。",
-          strengths: [
-            "関係の雰囲気を壊しすぎずに保ちやすい",
-            "相手の立場や気持ちに配慮した対応ができる"
-          ],
-          weaknesses: [
-            "問題を先延ばしにしてしまうことがある",
-            "言わないまま我慢が積もると、ある日一気に噴き出すリスクも"
-          ]
-        }
+        key: "CF", // ConFlict
+        name: "話し合い・衝突スタイル",
+        sideA: { code: "D", label: "D：ダイレクト型（その場で話す）" },
+        sideB: { code: "R", label: "R：ラウンド型（衝突を和らげる・丸く収める）" }
       }
     ];
 
+    // 6段階ハート：A寄り → 正の値、B寄り → 負の値
+    // index: 0〜5 => A強, A中, A弱, B弱, B中, B強
+    const HEART_VALUES = [3, 2, 1, -1, -2, -3];
+
+    // ===============================
     // 質問定義
-    // axisKey: AXIS_DEFS.key を参照, direction: +1 = A側がプラス, -1 = B側がプラス
+    // axis: 対象軸, direction: A寄りをその軸のどちら側に寄せるか（+1/-1）
+    // ===============================
     const QUESTIONS = [
-      // 生活設計 LS
+      // 生活スタイル LS (H vs A) : A=Home, B=Active
       {
         id: 1,
         axis: "LS",
@@ -713,17 +490,17 @@
         id: 2,
         axis: "LS",
         direction: +1,
-        text: "1週間の理想のスケジュール感は？",
-        aLabel: "A. ある程度決まったリズムで、毎日を安定して過ごしたい",
-        bLabel: "B. 週によって予定がガラッと変わるくらいがちょうどいい"
+        text: "平日の仕事終わり、理想の過ごし方に近いのは？",
+        aLabel: "A. なるべく早く帰って、家でゆったり過ごしたい",
+        bLabel: "B. 予定が入っていたり、外で過ごす日がある方が楽しい"
       },
       {
         id: 3,
         axis: "LS",
-        direction: -1,
+        direction: +1,
         text: "長期休暇のイメージとして近いのは？",
-        aLabel: "A. 行き先を決めず、気分で動いたり遠出したい",
-        bLabel: "B. 家でのんびりしつつ、近場で少し出かけるくらいが良い"
+        aLabel: "A. 家や近場で、ゆっくり休みながら過ごしたい",
+        bLabel: "B. せっかくなら遠出や旅行など、普段できないことをしたい"
       },
       {
         id: 4,
@@ -731,206 +508,104 @@
         direction: +1,
         text: "結婚後の理想の暮らしに近いのは？",
         aLabel: "A. 落ち着いたエリアで、家中心の生活を安定させたい",
-        bLabel: "B. 立地や環境を変えながら、その時々を楽しみたい"
+        bLabel: "B. 行きたい場所ややりたいことを一緒に楽しむ生活にしたい"
       },
 
-      // 金銭 MO
+      // お金・家計 MO (S vs P) : A=Saver, B=Player
       {
         id: 5,
         axis: "MO",
         direction: +1,
-        text: "お金の優先順位として、どちらが近いですか？",
+        text: "お金の使い方で、より自分らしいのはどちらですか？",
         aLabel: "A. まずは貯蓄や将来の安心を確保したい",
-        bLabel: "B. 今の経験や楽しみのためにも積極的に使いたい"
+        bLabel: "B. 今の経験や楽しみのためにも、ある程度使いたい"
       },
       {
         id: 6,
         axis: "MO",
-        direction: -1,
-        text: "ボーナスの使い方で、より自分らしいのは？",
-        aLabel: "A. 欲しいものや旅行などに思い切って使いたい",
-        bLabel: "B. まとまった額を貯金や投資に回しておきたい"
+        direction: +1,
+        text: "ボーナスが入ったときのイメージとして近いのは？",
+        aLabel: "A. 基本は貯金や将来のために回したい",
+        bLabel: "B. 旅行やご褒美など、記憶に残る使い方を優先したい"
       },
       {
         id: 7,
         axis: "MO",
         direction: +1,
-        text: "結婚後の家計イメージとして近いのは？",
-        aLabel: "A. 基本は堅実に管理しつつ、余裕が出たら楽しむ",
-        bLabel: "B. 人生の満足度を上げるために、ある程度積極的に使う"
+        text: "結婚後の家計運営について、どちらの方が安心しますか？",
+        aLabel: "A. 「貯める」「守る」がベースにある家計スタイル",
+        bLabel: "B. 人生の充実や経験のために、ある程度は使っていく家計スタイル"
       },
       {
         id: 8,
         axis: "MO",
-        direction: -1,
-        text: "カード明細を見たときの感覚として近いのは？",
-        aLabel: "A. 「まあなんとかなるか」と思うことが多い",
-        bLabel: "B. 「来月は少し抑えよう」と管理意識が働きやすい"
+        direction: +1,
+        text: "クレジットカードの明細を見たときの感覚に近いのは？",
+        aLabel: "A. 「もう少し抑えよう」と管理意識が働きやすい",
+        bLabel: "B. 「まあなんとかなる」と楽観的に捉えることが多い"
       },
 
-      // 食 FO
+      // 愛情表現 LX (N vs V) : A=Nurture, B=Verbal
       {
         id: 9,
-        axis: "FO",
+        axis: "LX",
         direction: +1,
-        text: "食事に対する感覚として近いのは？",
-        aLabel: "A. おいしさやお店選びなど、食そのものを楽しみたい",
-        bLabel: "B. おいしかったら十分で、そこまでこだわりは強くない"
+        text: "パートナーに「好き」を伝えるとき、まず浮かぶのは？",
+        aLabel: "A. 一緒に過ごす時間を増やしたり、何かしてあげること",
+        bLabel: "B. メッセージや言葉で、気持ちをきちんと伝えること"
       },
       {
         id: 10,
-        axis: "FO",
-        direction: +1,
-        text: "外食について、どちらがしっくりきますか？",
-        aLabel: "A. 気になるお店や話題の店にはぜひ行きたい",
-        bLabel: "B. たまに行ければ十分で、普段はシンプルで良い"
-      },
-      {
-        id: 11,
-        axis: "FO",
-        direction: -1,
-        text: "自炊に対するイメージとして、近いのは？",
-        aLabel: "A. 手間をかけるより、簡単に済ませたいことが多い",
-        bLabel: "B. 栄養バランスやコスパも意識しつつ、無理のない範囲で作りたい"
-      },
-      {
-        id: 12,
-        axis: "FO",
-        direction: +1,
-        text: "パートナーと食の価値観を合わせるとしたら？",
-        aLabel: "A. 少し無理してでも「おいしい体験」を一緒にしたい",
-        bLabel: "B. 背伸びしない範囲で、無理のない食生活を一緒に作りたい"
-      },
-
-      // 役割 RO
-      {
-        id: 13,
-        axis: "RO",
-        direction: +1,
-        text: "家事や予定決めに関して、どちらが近いですか？",
-        aLabel: "A. 自分が段取りして進める方がラクだと感じる",
-        bLabel: "B. 相手と相談しながら決めていきたい"
-      },
-      {
-        id: 14,
-        axis: "RO",
-        direction: +1,
-        text: "職場やグループでの自分の立ち位置に近いのは？",
-        aLabel: "A. 気づいたらまとめ役や調整役になることが多い",
-        bLabel: "B. 誰かが決めた方針に合わせて動くことが多い"
-      },
-      {
-        id: 15,
-        axis: "RO",
-        direction: -1,
-        text: "結婚生活の中での役割イメージは？",
-        aLabel: "A. できれば相手に主導してほしい場面が多い",
-        bLabel: "B. 自分も一緒に考えて、必要なら主導もできる方が良い"
-      },
-      {
-        id: 16,
-        axis: "RO",
-        direction: +1,
-        text: "「決断」の場面で、どちらに近いですか？",
-        aLabel: "A. 最終的には自分が決めた方がスッキリする",
-        bLabel: "B. 話し合って決める方が安心感がある"
-      },
-
-      // 愛情 LX
-      {
-        id: 17,
-        axis: "LX",
-        direction: +1,
-        text: "パートナーに「愛情を伝えたい」と思ったとき、まずイメージするのは？",
-        aLabel: "A. 一緒に過ごす時間を増やしたり、何かしてあげること",
-        bLabel: "B. メッセージや言葉で気持ちを伝えること"
-      },
-      {
-        id: 18,
         axis: "LX",
         direction: +1,
         text: "相手からの愛情表現として、一番うれしいのは？",
-        aLabel: "A. 手伝ってくれる・気にかけて行動してくれる",
-        bLabel: "B. 「ありがとう」「好きだよ」など、言葉で伝えてくれる"
+        aLabel: "A. 手伝ってくれる・支えてくれるなど、行動で示されること",
+        bLabel: "B. 「ありがとう」「好きだよ」など、言葉で伝えてくれること"
       },
       {
-        id: 19,
+        id: 11,
         axis: "LX",
-        direction: -1,
+        direction: +1,
         text: "日常の連絡スタイルとして近いのは？",
-        aLabel: "A. 用事があるときに連絡すればいいと思うことが多い",
-        bLabel: "B. 特に用事がなくても、ひと言でもやりとりしたい"
+        aLabel: "A. 用事があるときや会うときにしっかり時間を取れれば十分",
+        bLabel: "B. 特に用事がなくても、ちょっとしたメッセージを送りたい"
       },
       {
-        id: 20,
+        id: 12,
         axis: "LX",
         direction: +1,
         text: "記念日や特別な日のイメージは？",
-        aLabel: "A. 手料理や一緒に過ごす時間など、行動で特別にしたい",
-        bLabel: "B. メッセージカードや言葉で気持ちを伝える時間を大事にしたい"
+        aLabel: "A. 手料理や一緒に過ごす時間など、行動で特別感を出したい",
+        bLabel: "B. メッセージカードや言葉で気持ちをしっかり伝えたい"
       },
 
-      // 感情 EC
+      // 衝突 CF (D vs R) : A=Direct, B=Round
       {
-        id: 21,
-        axis: "EC",
-        direction: +1,
-        text: "日常の中で、うれしい・悲しい・ムッとしたなどの感情は…",
-        aLabel: "A. わりとすぐ顔や言葉に出る方だと思う",
-        bLabel: "B. まず自分の中で整理してから出てくることが多い"
-      },
-      {
-        id: 22,
-        axis: "EC",
-        direction: -1,
-        text: "落ち込んだときの過ごし方として近いのは？",
-        aLabel: "A. ひとまず一人で考えたり、静かにしていたい",
-        bLabel: "B. 誰かに話してスッキリしたい"
-      },
-      {
-        id: 23,
-        axis: "EC",
-        direction: +1,
-        text: "パートナーとの会話イメージは？",
-        aLabel: "A. その日のことや気持ちを、ある程度シェアしたい",
-        bLabel: "B. 必要なことや本当に伝えたいときだけ話せればよい"
-      },
-      {
-        id: 24,
-        axis: "EC",
-        direction: +1,
-        text: "感情のリアクションとして近いのは？",
-        aLabel: "A. 笑ったり驚いたり、リアクションが大きい方だと思う",
-        bLabel: "B. 落ち着いていて、あまりオーバーリアクションはしない"
-      },
-
-      // 衝突 CF
-      {
-        id: 25,
+        id: 13,
         axis: "CF",
         direction: +1,
         text: "パートナーとの間でモヤモヤを感じたとき、どちらが多いですか？",
         aLabel: "A. できるだけ早めに話しておきたい",
-        bLabel: "B. しばらく様子を見て、落ち着いてから考えたい"
+        bLabel: "B. しばらく様子を見て、落ち着いてから話したい"
       },
       {
-        id: 26,
+        id: 14,
         axis: "CF",
         direction: +1,
         text: "ケンカや衝突について、どちらの考えが近いですか？",
-        aLabel: "A. ぶつかってもいいから話し合った方がスッキリする",
+        aLabel: "A. ぶつかってもいいから、話して解決したい",
         bLabel: "B. なるべく大きな衝突は避けたい"
       },
       {
-        id: 27,
+        id: 15,
         axis: "CF",
-        direction: -1,
-        text: "相手が怒っていそうなとき、あなたは？",
-        aLabel: "A. とりあえずそっとしておき、タイミングを見たい",
-        bLabel: "B. 状況を確認して、話せるなら早めに話したい"
+        direction: +1,
+        text: "相手が怒っていそうなとき、あなたはどうしがちですか？",
+        aLabel: "A. 状況を確認して、話せそうなら早めに話したい",
+        bLabel: "B. とりあえずそっとしておき、タイミングを見たい"
       },
       {
-        id: 28,
+        id: 16,
         axis: "CF",
         direction: +1,
         text: "「ごめんね」を伝えるタイミングとして近いのは？",
@@ -939,9 +614,304 @@
       }
     ];
 
-    // 6段階ハート（A強〜B強、ど真ん中なし）
-    // index: 0〜5 => [-3, -2, -1, +1, +2, +3]
-    const HEART_VALUES = [-3, -2, -1, 1, 2, 3];
+    // ===============================
+    // 16タイプ定義（コードごとにキャッチーなプロフィール）
+    // コード = LS(MO)(LX)(CF) = H/A, S/P, N/V, D/R
+    // ===============================
+    const TYPE_PROFILES = {
+      // HSND: ホーム × セイバー × nurture × ダイレクト
+      "HSND": {
+        name: "家守り番長",
+        catch: "安定した暮らしを作り、行動で支え、必要なときはちゃんと話す。",
+        life: "家でのんびり過ごす時間と、堅実な家計運営を大切にするタイプ。派手さよりも、毎日の生活が整っていることに安心を感じます。",
+        partner: "パートナーのために動いたり、家事や段取りを引き受けることが多め。モヤモヤがあればその場で話し合い、関係をきちんと整えたいと考えます。",
+        strengths: [
+          "結婚生活の土台を安定させるのが得意",
+          "具体的な行動で相手を支えられる",
+          "問題を放置せず、話し合いで解決しようとする",
+          "堅実な家計で将来への不安を減らせる"
+        ],
+        weaknesses: [
+          "慎重になりすぎて、楽しみのための出費にブレーキをかけがち",
+          "自分が動きすぎて、気づくと負担が偏っていることも",
+          "率直さが強く出ると、相手が責められているように感じることがある"
+        ]
+      },
+
+      // S + N + R
+      "HSNR": {
+        name: "おだやか家計マネージャー",
+        catch: "静かな安定感と、衝突を避ける優しさで家を守る。",
+        life: "落ち着いた暮らしと堅実な家計を好み、大きな波の少ない生活に安心を感じるタイプ。計画的で、日常を淡々と回すことが得意です。",
+        partner: "行動や時間で愛情を示しつつ、ケンカはできるだけ穏やかに済ませたいスタイル。話し合いは必要だと分かりつつも、一度クールダウンしてから向き合いたいと考えます。",
+        strengths: [
+          "家計や生活のリスク管理が上手い",
+          "相手にとって「ほっとできる存在」になりやすい",
+          "衝突を大きくしない配慮ができる",
+          "コツコツとした積み上げが得意"
+        ],
+        weaknesses: [
+          "我慢をため込んでしまい、ある日一気に疲れが出ることがある",
+          "問題を先送りしすぎると、小さな不満がたまるリスク",
+          "自分の頑張りや不満を言葉にするのが後回しになりがち"
+        ]
+      },
+
+      "HSVD": {
+        name: "言葉巧みな家庭ナビゲーター",
+        catch: "堅実な暮らしをベースに、言葉と話し合いで舵を取る。",
+        life: "家での時間や安定した暮らしを大事にしつつ、無理のない範囲で貯蓄や将来設計を進めていくタイプ。生活のバランス感覚に優れています。",
+        partner: "「ありがとう」「こうしたい」をきちんと伝えながら、話し合いで関係を整えるスタイル。感情を放置せず、言葉で橋をかけていきます。",
+        strengths: [
+          "パートナーにとって分かりやすいコミュニケーションができる",
+          "家計・生活・気持ちのバランスをとるのが上手い",
+          "問題が起きてもすり合わせながら解決できる",
+          "相手の不安に言葉で寄り添える"
+        ],
+        weaknesses: [
+          "言葉での説明が増えすぎると、相手が疲れてしまうことも",
+          "慎重さゆえに、大きなチャレンジに踏み出すのが遅くなりがち",
+          "自分の行動面での負担が後回しになることがある"
+        ]
+      },
+
+      "HSVR": {
+        name: "やさしめ家庭パートナー",
+        catch: "安定志向×言葉の気遣い×空気を読む穏やかさ。",
+        life: "安定感のある暮らしと、堅実な家計運営をベースに、静かな日常を丁寧に積み上げていくタイプ。急激な変化よりも、着実なステップを好みます。",
+        partner: "衝突よりも調和を大事にしつつ、言葉で相手を思いやるスタイル。小さな「ありがとう」やねぎらいの一言を大切にします。",
+        strengths: [
+          "一緒にいると心が落ち着く存在になりやすい",
+          "相手に配慮した優しいコミュニケーションができる",
+          "家計や生活の基盤づくりに向いている",
+          "大きな波風を立てずに関係を続けやすい"
+        ],
+        weaknesses: [
+          "自分の本音を飲み込んでしまうことがある",
+          "変化を避けすぎると、関係がマンネリ化しやすい",
+          "本当はつらいのに「大丈夫」と言ってしまいがち"
+        ]
+      },
+
+      // HP…（ホーム×プレイヤー）
+      "HPND": {
+        name: "おうち満喫職人",
+        catch: "家は落ち着きたい、でも楽しみにはお金も時間も使いたい。",
+        life: "ベースは家で落ち着きたいけれど、趣味や楽しみにもしっかり投資したいタイプ。オン・オフの切り替えがはっきりしていることが多いです。",
+        partner: "一緒に過ごす時間や家事・サポートなど、行動で支えるスタイル。必要なときにははっきり話し合い、現実的に物事を進めていきます。",
+        strengths: [
+          "生活の安定と楽しみを両立させやすい",
+          "パートナーの具体的な負担を減らせる",
+          "決めるべき場面で腰が重くなりにくい",
+          "計画さえ立てれば、堅実さと柔軟さのバランスが良い"
+        ],
+        weaknesses: [
+          "気づくと支出がやや多くなりがち",
+          "相手が超堅実派だとペース調整が必要",
+          "自分が動けてしまう分、「やってもらう」ことが苦手になることも"
+        ]
+      },
+
+      "HPNR": {
+        name: "ゆるっと家族サポーター",
+        catch: "家でまったり＋たまに贅沢。空気を読みながら支える。",
+        life: "基本はおうち時間が好きで、日常はゆったりめ。ただし、ここぞというときには楽しいことにお金をかけたいタイプです。",
+        partner: "行動や時間で相手を支えつつ、争いは避けたいスタイル。多少のモヤモヤは様子を見ながら、自分の中で折り合いをつけることも多いです。",
+        strengths: [
+          "一緒にいてラクだと感じてもらいやすい",
+          "プレッシャーをかけずに相手を支えられる",
+          "日常の小さな幸せを見つけるのが上手い",
+          "多少のブレがあっても柔軟に受け止められる"
+        ],
+        weaknesses: [
+          "家計管理がざっくりになりやすい",
+          "不満をため込んでしまうと、後からドッと疲れが出ることも",
+          "重要な話し合いを先延ばしにしがち"
+        ]
+      },
+
+      "HPVD": {
+        name: "甘やかし上手なホーム演出家",
+        catch: "家はくつろぎのテーマパーク。言葉と行動で盛り上げるリーダー。",
+        life: "家での時間を大事にしつつ、イベントやご褒美にはしっかり投資するタイプ。記念日や季節ごとの楽しみ方を考えるのが得意です。",
+        partner: "「ありがとう」「好き」を言葉で伝えながら、必要な話し合いもこなすスタイル。場の空気を明るくしつつ、決めるところは決められます。",
+        strengths: [
+          "一緒にいて飽きない家庭づくりができる",
+          "愛情表現が分かりやすく、安心感につながりやすい",
+          "イベントや記念日を上手に演出できる",
+          "問題があってもコミュニケーションで乗り越えやすい"
+        ],
+        weaknesses: [
+          "楽しみ優先で支出が増えやすい",
+          "相手がシンプル派だと「ちょっと重い」と感じられることも",
+          "自分ばかり動いて疲れてしまうリスク"
+        ]
+      },
+
+      "HPVR": {
+        name: "やわらかご褒美隊長",
+        catch: "おうちベースで、たまにご褒美。穏やかな甘やかし担当。",
+        life: "日常は落ち着いたペースで、時々のご褒美や楽しみにお金をかけたいタイプ。無理はしないけれど、人生をちゃんと楽しみたい感覚があります。",
+        partner: "言葉でねぎらい・感謝を伝えながら、衝突はできるだけ穏やかに済ませたいスタイル。雰囲気を壊さないコミュニケーションを好みます。",
+        strengths: [
+          "やわらかい雰囲気でパートナーを包み込みやすい",
+          "頑張りをちゃんと言葉で認められる",
+          "小さな贅沢を一緒に楽しむのがうまい",
+          "衝突を必要以上に大きくしない"
+        ],
+        weaknesses: [
+          "お金の使い方が場当たり的になりやすい",
+          "本音を飲み込みすぎると、どこかでバランスを崩しやすい",
+          "重要なテーマの話し合いを避けてしまうことがある"
+        ]
+      },
+
+      // AS…（アクティブ×セイバー）
+      "ASND": {
+        name: "堅実アクティブプランナー",
+        catch: "人生をちゃんと楽しみたいからこそ、計画と話し合いを大事にする。",
+        life: "外出や新しい体験は好きだけれど、家計や将来設計はしっかりしておきたいタイプ。メリハリのあるライフプランを考えるのが得意です。",
+        partner: "一緒に動き、一緒に楽しむ行動派。必要な場面ではしっかり話し合い、現実的な落としどころを探します。",
+        strengths: [
+          "計画性と行動力のバランスが良い",
+          "二人の将来像を具体的に描きやすい",
+          "課題があっても逃げずに向き合える",
+          "楽しみも我慢も、必要に応じて調整できる"
+        ],
+        weaknesses: [
+          "頭の中が常に「計画モード」になりすぎることがある",
+          "相手がのんびりタイプだと、少し急かしてしまうことも",
+          "自分の弱さを見せるのが少し苦手"
+        ]
+      },
+
+      "ASNR": {
+        name: "やさしい遠足仕掛人",
+        catch: "外ではアクティブ、中ではおだやか。堅実さベースのやわらかパートナー。",
+        life: "休日は外出やアクティビティも楽しみたいけれど、家計はきちんと管理しておきたいタイプ。堅実さと遊び心を両立しようとします。",
+        partner: "行動や時間で愛情を示しつつ、衝突はできるだけ避けたいスタイル。相手のペースにも気を配りながら、一緒に楽しめる形を探します。",
+        strengths: [
+          "安心感と楽しさの両方を提供しやすい",
+          "パートナーの希望に寄り添う余裕がある",
+          "堅実さがベースにあるので無茶はしにくい",
+          "アクティビティを通じて距離を縮めやすい"
+        ],
+        weaknesses: [
+          "自分の希望を後回しにしてしまうことがある",
+          "本当は話したい不満を飲み込むクセがつきがち",
+          "予定を詰め込みすぎると、知らないうちに疲れが溜まる"
+        ]
+      },
+
+      "ASVD": {
+        name: "理詰めのおでかけ指南役",
+        catch: "言葉で整理し、行動で動く。頼られがちなアクティブ参謀。",
+        life: "あちこち動くことや新しい挑戦が好きですが、ベースは堅実。楽しみもリスクも、頭の中でちゃんと計算するです。",
+        partner: "言葉で整理しながら、必要なことを決めていくスタイル。話し合いの場では、自然と“まとめ役”になりやすいかもしれません。",
+        strengths: [
+          "複雑なことを言葉で整理して伝えられる",
+          "行動力がありつつ、大きな失敗は避けやすい",
+          "パートナーの不安を言語化してあげられる",
+          "二人の将来について建設的な議論ができる"
+        ],
+        weaknesses: [
+          "説明が多くなりすぎると、相手が「論破された」と感じることも",
+          "自分の疲れや限界を後回しにしがち",
+          "計算しすぎて、一歩目が出るのが遅くなることがある"
+        ]
+      },
+
+      "ASVR": {
+        name: "空気読むおでかけ調整役",
+        catch: "楽しく動きつつ、言葉のバランスで場を整える。",
+        life: "アクティブに動くことが好きで、人との関わりや会話も多めなタイプ。とはいえ家計は整えておきたいという意識も強めです。",
+        partner: "その場の空気を読みながら、言葉でフォローするスタイル。衝突を和らげつつ、なんとなく良い雰囲気に持っていくのが得意です。",
+        strengths: [
+          "場の空気を和ませるのが上手い",
+          "相手の気分を察してフォローしやすい",
+          "楽しさと安心感のバランスが取れている",
+          "人間関係全般を円滑にしやすい"
+        ],
+        weaknesses: [
+          "本音をぼかしすぎて、自分が何をしたいのか見失うことがある",
+          "相手の顔色を見すぎて疲れてしまうことも",
+          "ケンカが苦手すぎて、大事な話が後回しになるリスク"
+        ]
+      },
+
+      // AP…（アクティブ×プレイヤー）
+      "APND": {
+        name: "全力おでかけ提案王",
+        catch: "一緒に全力で楽しみ、一緒にちゃんと話して進んでいく。",
+        life: "新しい体験やイベントが大好きで、人生をフルに楽しみたいタイプ。お金も時間も「使ってなんぼ」と考えるところがあります。",
+        partner: "一緒に動き、一緒に笑い、一緒に悩む行動派。問題があればその場で話し合い、スピード感を持って対応しようとします。",
+        strengths: [
+          "二人の思い出をどんどん増やせる",
+          "迷ったときに前に進む決断がしやすい",
+          "感情を共有しながら関係を深められる",
+          "行動量が多いので、人生の幅が広がりやすい"
+        ],
+        weaknesses: [
+          "家計や体力のどちらかが限界を迎えやすい",
+          "ゆっくりペースの相手には少し忙しすぎるかもしれない",
+          "走り続けているうちに、自分のケアを忘れがち"
+        ]
+      },
+
+      "APNR": {
+        name: "ふわっと自由なムードメイカータイプ",
+        catch: "その場の楽しさを大事にしつつ、深刻な話は少し苦手。",
+        life: "楽しいこと・おもしろそうなことがあれば、とりあえずやってみたいタイプ。細かい計画よりも、その場のノリや直感を重視します。",
+        partner: "行動や時間で距離を縮める一方、重い話や衝突はできるだけ避けたいスタイル。明るさで場を和ませるのが得意です。",
+        strengths: [
+          "一緒にいて退屈しないパートナーになりやすい",
+          "場を楽しい方向に持っていくのが得意",
+          "小さなことを気にしすぎず、前向きでいられる",
+          "思い立ったらすぐ動けるフットワークの軽さ"
+        ],
+        weaknesses: [
+          "家計や将来設計が後回しになりやすい",
+          "苦手な話題から逃げがちで、問題が長引くことも",
+          "相手に「ちゃんとしてほしい」と思われる場面もある"
+        ]
+      },
+
+      "APVD": {
+        name: "ドラマチックプロデューサー",
+        catch: "言葉も行動も全開。恋も結婚も「物語」として楽しむ。",
+        life: "イベント・旅行・新しい挑戦など、人生に彩りを求めるタイプ。お金も時間も「経験」に投資することが多いです。",
+        partner: "愛情表現は分かりやすく、言葉と行動の両方で示していくスタイル。話し合いも恐れず、二人の物語を一緒に作っていくイメージを持ちます。",
+        strengths: [
+          "強い印象に残る時間をたくさん作れる",
+          "パートナーを「特別扱い」するのが得意",
+          "関係性を放置せず、アップデートしていける",
+          "人生を共に楽しむ「相棒」を探しやすい"
+        ],
+        weaknesses: [
+          "感情の波が大きくなりやすい",
+          "出費がかさみやすく、家計管理の工夫が必須",
+          "落ち着いた関係を好む相手には少し激しく感じられることも"
+        ]
+      },
+
+      "APVR": {
+        name: "雰囲気だいじ職人",
+        catch: "人生は楽しみたい。でも雰囲気は壊したくない。",
+        life: "やりたいこと・行きたい場所は多めで、人生を楽しみたい欲求が強いタイプ。ただし空気を壊すような衝突はあまり好みません。",
+        partner: "言葉で気持ちを伝えつつ、場の空気を読みながらコミュニケーションするスタイル。衝突を避けつつ、なんとなく良い方向に持っていこうとします。",
+        strengths: [
+          "楽しい提案ができて、関係に明るさをもたらしやすい",
+          "相手を傷つけない言い回しを選べる",
+          "日常の中に小さなイベントを作るのが得意",
+          "重くなりすぎない距離感でいられる"
+        ],
+        weaknesses: [
+          "お金とエネルギーの使いすぎには要注意",
+          "踏み込んだ話を避けると、関係が表面的になりやすい",
+          "本音を言うタイミングを逃してモヤモヤが残ることがある"
+        ]
+      }
+    };
 
     // ===============================
     // 状態管理
@@ -975,7 +945,7 @@
     const copyUrlBtn = document.getElementById("copy-url-btn");
 
     // ===============================
-    // 質問画面描画
+    // 質問描画
     // ===============================
     function renderQuestion() {
       const total = QUESTIONS.length;
@@ -1040,28 +1010,25 @@
     }
 
     // ===============================
-    // 結果ロジック（軸ごとに合算 → 7文字コード → テキスト自動生成）
+    // 結果計算（4軸 → 4文字コード → TYPE_PROFILES）
     // ===============================
     function calculateResult() {
-      // 軸スコア初期化
       const axisScores = {};
-      AXIS_DEFS.forEach(a => {
+      AXES.forEach(a => {
         axisScores[a.key] = 0;
       });
 
-      // 質問ごとの回答をスコアに加算
       for (const q of QUESTIONS) {
         const idx = answers[q.id];
         if (idx == null) continue;
-        const base = HEART_VALUES[idx]; // -3〜+3
+        const base = HEART_VALUES[idx]; // A寄りが +3〜+1, B寄りが -1〜-3
         axisScores[q.axis] += base * q.direction;
       }
 
-      // 各軸のA/Bどちらかを決定
-      const chosenSides = []; // {axisDef, side}
+      const chosenSides = [];
       const codeLetters = [];
 
-      for (const axisDef of AXIS_DEFS) {
+      for (const axisDef of AXES) {
         const score = axisScores[axisDef.key] || 0;
         const side = score >= 0 ? axisDef.sideA : axisDef.sideB;
         chosenSides.push({ axis: axisDef, side });
@@ -1069,8 +1036,7 @@
       }
 
       const code = codeLetters.join("");
-
-      renderResultByAxes(code, chosenSides);
+      renderResult(code, chosenSides);
     }
 
     function updateUrlWithCode(code) {
@@ -1079,37 +1045,32 @@
       history.replaceState(null, "", url.toString());
     }
 
-    function renderResultByAxes(code, chosenSides) {
+    function renderResult(code, chosenSides) {
+      const profile = TYPE_PROFILES[code];
+
       updateUrlWithCode(code);
 
       quizView.style.display = "none";
       resultView.style.display = "";
 
-      // タイプ名：上位3軸のタグを×で連結
-      const mainTags = chosenSides.slice(0, 3).map(cs => cs.side.tag);
-      const typeName = mainTags.join(" × ") + "タイプ";
+      if (!profile) {
+        resultTypeNameEl.textContent = "不明なタイプ";
+        resultCodeEl.textContent = code;
+        resultCodeInlineEl.textContent = code;
+        resultCatchEl.textContent = "タイプ定義が見つかりませんでした。設定を確認してください。";
+        resultLifeEl.textContent = "";
+        resultPartnerEl.textContent = "";
+        resultStrengthsEl.innerHTML = "";
+        resultWeaknessesEl.innerHTML = "";
+        axisChipsEl.innerHTML = "";
+        return;
+      }
 
-      resultTypeNameEl.textContent = typeName;
+      resultTypeNameEl.textContent = profile.name;
       resultCodeEl.textContent = code;
       resultCodeInlineEl.textContent = code;
+      resultCatchEl.textContent = profile.catch;
 
-      // キャッチコピー：生活系（LS/MO/FO）と感情・コミュ系（LX/EC/CF）からざっくり合成
-      const lifeRelated = ["LS", "MO", "FO"];
-      const commRelated = ["LX", "EC", "CF", "RO"];
-      const lifePhrase = chosenSides
-        .filter(cs => lifeRelated.includes(cs.axis.key))
-        .map(cs => cs.side.tag)
-        .join("・");
-      const commPhrase = chosenSides
-        .filter(cs => commRelated.includes(cs.axis.key))
-        .map(cs => cs.side.tag)
-        .join("・");
-
-      const catchText =
-        `「${lifePhrase}」と「${commPhrase}」をあわせ持つ、結婚生活で個性がはっきりしたタイプです。`;
-      resultCatchEl.textContent = catchText;
-
-      // 軸チップ表示
       axisChipsEl.innerHTML = "";
       chosenSides.forEach(cs => {
         const chip = document.createElement("span");
@@ -1118,35 +1079,18 @@
         axisChipsEl.appendChild(chip);
       });
 
-      // 結婚生活のスタイル（lifeDescriptionを合成）
-      const lifeSentences = chosenSides
-        .filter(cs => ["LS", "MO", "FO"].includes(cs.axis.key))
-        .map(cs => cs.side.lifeDesc);
-      resultLifeEl.textContent = lifeSentences.join(" ");
-
-      // パートナーとの関わり方（partnerDescを合成）
-      const partnerSentences = chosenSides
-        .filter(cs => ["RO", "LX", "EC", "CF"].includes(cs.axis.key))
-        .map(cs => cs.side.partnerDesc);
-      resultPartnerEl.textContent = partnerSentences.join(" ");
-
-      // 強み・弱み（各軸の強み/弱みを合成し、最大6件ずつ表示）
-      const strengths = [];
-      const weaknesses = [];
-      chosenSides.forEach(cs => {
-        strengths.push(...(cs.side.strengths || []));
-        weaknesses.push(...(cs.side.weaknesses || []));
-      });
+      resultLifeEl.textContent = profile.life;
+      resultPartnerEl.textContent = profile.partner;
 
       resultStrengthsEl.innerHTML = "";
-      strengths.slice(0, 6).forEach(s => {
+      (profile.strengths || []).forEach(s => {
         const li = document.createElement("li");
         li.textContent = s;
         resultStrengthsEl.appendChild(li);
       });
 
       resultWeaknessesEl.innerHTML = "";
-      weaknesses.slice(0, 6).forEach(w => {
+      (profile.weaknesses || []).forEach(w => {
         const li = document.createElement("li");
         li.textContent = w;
         resultWeaknessesEl.appendChild(li);
@@ -1174,7 +1118,6 @@
         currentIndex++;
         renderQuestion();
       } else {
-        // 全問回答チェック
         for (const q of QUESTIONS) {
           if (answers[q.id] == null) {
             alert("すべての質問に回答してください。");
@@ -1209,7 +1152,7 @@
     });
 
     // ===============================
-    // 初期表示 & 共有URLからの復元
+    // 初期表示 & URLからの結果復元
     // ===============================
     function initFromUrl() {
       const params = new URLSearchParams(window.location.search);
@@ -1219,29 +1162,23 @@
         return;
       }
 
-      // URLに type=XXXXXXX があれば、7文字として各軸に割り当てて再現
-      if (presetCode.length !== AXIS_DEFS.length) {
+      const profile = TYPE_PROFILES[presetCode];
+      if (!profile || presetCode.length !== AXES.length) {
         renderQuestion();
         return;
       }
 
       const chosenSides = [];
-      for (let i = 0; i < AXIS_DEFS.length; i++) {
-        const axisDef = AXIS_DEFS[i];
+      for (let i = 0; i < AXES.length; i++) {
+        const axisDef = AXES[i];
         const letter = presetCode[i];
         let side;
-        if (axisDef.sideA.code === letter) {
-          side = axisDef.sideA;
-        } else if (axisDef.sideB.code === letter) {
-          side = axisDef.sideB;
-        } else {
-          // 不明なコードの場合は中断して通常表示
-          renderQuestion();
-          return;
-        }
+        if (axisDef.sideA.code === letter) side = axisDef.sideA;
+        else if (axisDef.sideB.code === letter) side = axisDef.sideB;
+        else { renderQuestion(); return; }
         chosenSides.push({ axis: axisDef, side });
       }
-      renderResultByAxes(presetCode, chosenSides);
+      renderResult(presetCode, chosenSides);
     }
 
     initFromUrl();
